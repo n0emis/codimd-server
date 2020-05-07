@@ -1,0 +1,35 @@
+kind: pipeline
+type: docker
+name: default
+
+steps:
+  - name: build
+    image: node:lts
+    volumes:
+      - name: build
+        path: /build
+    environment:
+      NODE_ENV: "production"
+    commands:
+      - ./bin/setup
+      - yarn run build
+      - tar --exclude=node_modules --exclude=docs --exclude-vcs -zcf /build/codimd-${DRONE_BRANCH}.tar.gz .
+
+  - name: upload_build_result
+    image: appleboy/drone-scp
+    volumes:
+      - name: build
+        path: /build
+    settings:
+      host: 10.151.10.4
+      username: ci
+      key:
+        from_secret: SSH_UPLOAD_KEY
+      target: /var/www/labcode.de/static.labcode.de/build/codimd
+      source: /build
+      strip_components: 1
+
+volumes:
+  - name: build
+    temp: {}
+
